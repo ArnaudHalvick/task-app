@@ -4,11 +4,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
-import { CdkDragDrop, CdkDropList, CdkDrag, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
+import { CdkDragDrop, CdkDropList, CdkDrag } from '@angular/cdk/drag-drop';
 import { Task } from './task/task';
 import { TaskComponent } from './task/task.component';
 import { TaskDialogComponent } from './task-dialog/task-dialog.component';
-import { TaskDialogResult } from './task-dialog/task-dialog.types';
 import { Firestore, collection, collectionData, deleteDoc, doc, runTransaction, setDoc } from '@angular/fire/firestore';
 import { firstValueFrom } from 'rxjs';
 

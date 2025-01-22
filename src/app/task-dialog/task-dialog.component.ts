@@ -5,7 +5,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { FormsModule } from '@angular/forms';
-import { TaskDialogData, TaskDialogResult } from './task-dialog.types';
+import { TaskDialogData } from './task-dialog.types';
 
 @Component({
   selector: 'app-task-dialog',

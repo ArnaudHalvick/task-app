@@ -1,4 +1,4 @@
-import { Component, input, output, Signal } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { Task } from './task';
 import { MatCardModule } from '@angular/material/card';
 
