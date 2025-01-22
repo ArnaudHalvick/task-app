@@ -9,6 +9,8 @@ import { Task } from './task/task';
 import { TaskComponent } from './task/task.component';
 import { TaskDialogComponent } from './task-dialog/task-dialog.component';
 import { TaskDialogResult } from './task-dialog/task-dialog.types';
+import { Firestore, collection, collectionData, deleteDoc, doc, runTransaction, setDoc } from '@angular/fire/firestore';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-root',
@@ -27,59 +29,52 @@ import { TaskDialogResult } from './task-dialog/task-dialog.types';
 })
 export class AppComponent {
   title = 'kanban-fire';
-  todo = signal<Task[]>([
-    {
-      id: '1',
-      title: 'Buy milk',
-      description: 'Go to the store and buy milk'
-    },
-    {
-      id: '2',
-      title: 'Create a Kanban app',
-      description: 'Using Firebase and Angular create a Kanban app!'
-    }
-  ]);
+  private firestore = inject(Firestore);
+  private dialog = inject(MatDialog);
+
+  todo = signal<Task[]>([]);
   inProgress = signal<Task[]>([]);
   done = signal<Task[]>([]);
 
-  private dialog = inject(MatDialog);
+  constructor() {
+    // Subscribe to Firestore collections
+    this.subscribeToCollection('todo');
+    this.subscribeToCollection('inProgress');
+    this.subscribeToCollection('done');
+  }
 
-  constructor() {}
+  private subscribeToCollection(collectionName: 'todo' | 'inProgress' | 'done') {
+    const collectionRef = collection(this.firestore, collectionName);
+    collectionData(collectionRef, { idField: 'id' }).subscribe(tasks => {
+      this[collectionName].set(tasks as Task[]);
+    });
+  }
 
-  drop(event: CdkDragDrop<Task[]>) {
+  async drop(event: CdkDragDrop<Task[]>) {
     if (event.previousContainer === event.container) {
-      const tasks = [...event.container.data];
-      moveItemInArray(tasks, event.previousIndex, event.currentIndex);
-      this.updateList(event.container.id, tasks);
-    } else {
-      const prevTasks = [...event.previousContainer.data];
-      const currTasks = [...event.container.data];
-      transferArrayItem(
-        prevTasks,
-        currTasks,
-        event.previousIndex,
-        event.currentIndex
-      );
-      this.updateList(event.previousContainer.id, prevTasks);
-      this.updateList(event.container.id, currTasks);
+      return;
+    }
+
+    const item = event.previousContainer.data[event.previousIndex];
+    const sourceCollection = event.previousContainer.id;
+    const targetCollection = event.container.id;
+
+    try {
+      await runTransaction(this.firestore, async (transaction) => {
+        // Delete from source collection
+        const sourceDoc = doc(this.firestore, sourceCollection, item.id!);
+        transaction.delete(sourceDoc);
+
+        // Add to target collection
+        const targetDoc = doc(this.firestore, targetCollection, item.id!);
+        transaction.set(targetDoc, item);
+      });
+    } catch (e) {
+      console.error('Transaction failed: ', e);
     }
   }
 
-  private updateList(id: string, tasks: Task[]) {
-    switch (id) {
-      case 'todo':
-        this.todo.set(tasks);
-        break;
-      case 'inProgress':
-        this.inProgress.set(tasks);
-        break;
-      case 'done':
-        this.done.set(tasks);
-        break;
-    }
-  }
-
-  editTask(list: 'todo' | 'inProgress' | 'done', task: Task): void {
+  async editTask(list: 'todo' | 'inProgress' | 'done', task: Task): Promise<void> {
     const dialogRef = this.dialog.open(TaskDialogComponent, {
       width: '450px',
       data: {
@@ -88,25 +83,23 @@ export class AppComponent {
       },
     });
 
-    dialogRef.afterClosed().subscribe((result?: TaskDialogResult) => {
-      if (!result) return;
+    const result = await firstValueFrom(dialogRef.afterClosed());
+    if (!result) return;
 
-      const signal = this[list];
-      const currentTasks = signal();
-      
+    const docRef = doc(this.firestore, list, task.id!);
+
+    try {
       if (result.delete) {
-        // Remove the task
-        signal.set(currentTasks.filter(t => t.id !== task.id));
+        await deleteDoc(docRef);
       } else {
-        // Update the task
-        signal.set(currentTasks.map(t => 
-          t.id === task.id ? { ...result.task, id: task.id } : t
-        ));
+        await setDoc(docRef, result.task);
       }
-    });
+    } catch (e) {
+      console.error('Error updating task: ', e);
+    }
   }
 
-  newTask(): void {
+  async newTask(): Promise<void> {
     const dialogRef = this.dialog.open(TaskDialogComponent, {
       width: '450px',
       data: {
@@ -115,11 +108,18 @@ export class AppComponent {
       },
     });
 
-    dialogRef.afterClosed().subscribe((result?: TaskDialogResult) => {
-      if (!result) return;
-      
-      // Update the todo signal with the new task
-      this.todo.update(tasks => [...tasks, result.task]);
-    });
+    const result = await firstValueFrom(dialogRef.afterClosed());
+    if (!result) return;
+
+    try {
+      const collectionRef = collection(this.firestore, 'todo');
+      const docRef = doc(collectionRef);
+      await setDoc(docRef, {
+        ...result.task,
+        id: docRef.id
+      });
+    } catch (e) {
+      console.error('Error creating task: ', e);
+    }
   }
 }
