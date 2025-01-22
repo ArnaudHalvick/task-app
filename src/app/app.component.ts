@@ -45,31 +45,87 @@ export class AppComponent {
   private subscribeToCollection(collectionName: 'todo' | 'inProgress' | 'done') {
     const collectionRef = collection(this.firestore, collectionName);
     collectionData(collectionRef, { idField: 'id' }).subscribe(tasks => {
-      this[collectionName].set(tasks as Task[]);
+      const sortedTasks = (tasks as Task[]).sort((a, b) => 
+        (a.position ?? 0) - (b.position ?? 0)
+      );
+      this[collectionName].set(sortedTasks);
     });
   }
 
   async drop(event: CdkDragDrop<Task[]>) {
-    if (event.previousContainer === event.container) {
-      return;
-    }
+    const { previousContainer, container, previousIndex, currentIndex } = event;
+    const item = previousContainer.data[previousIndex];
+    
+    if (previousContainer === container) {
+      // Same container drop
+      const listSignal = this[container.id as 'todo' | 'inProgress' | 'done'];
+      const newData = [...container.data];
+      const [removed] = newData.splice(previousIndex, 1);
+      newData.splice(currentIndex, 0, removed);
+      
+      // Optimistic update
+      listSignal.set(newData);
 
-    const item = event.previousContainer.data[event.previousIndex];
-    const sourceCollection = event.previousContainer.id;
-    const targetCollection = event.container.id;
+      try {
+        // Update positions in Firestore
+        await runTransaction(this.firestore, async (transaction) => {
+          const collectionRef = collection(this.firestore, container.id);
+          
+          // Update all affected documents with their new positions
+          newData.forEach((task, index) => {
+            const docRef = doc(collectionRef, task.id);
+            transaction.update(docRef, { position: index });
+          });
+        });
+      } catch (e) {
+        console.error('Reorder transaction failed: ', e);
+        // Revert optimistic update on error
+        this.subscribeToCollection(container.id as 'todo' | 'inProgress' | 'done');
+      }
+    } else {
+      // Cross-container drop
+      try {
+        // Create new arrays for both containers
+        const newSourceData = [...previousContainer.data];
+        newSourceData.splice(previousIndex, 1);
+        
+        const newTargetData = [...container.data];
+        newTargetData.splice(currentIndex, 0, item);
 
-    try {
-      await runTransaction(this.firestore, async (transaction) => {
-        // Delete from source collection
-        const sourceDoc = doc(this.firestore, sourceCollection, item.id!);
-        transaction.delete(sourceDoc);
+        // Optimistic update - set both arrays at once
+        this[previousContainer.id as 'todo' | 'inProgress' | 'done'].set(newSourceData);
+        this[container.id as 'todo' | 'inProgress' | 'done'].set(newTargetData);
 
-        // Add to target collection
-        const targetDoc = doc(this.firestore, targetCollection, item.id!);
-        transaction.set(targetDoc, item);
-      });
-    } catch (e) {
-      console.error('Transaction failed: ', e);
+        await runTransaction(this.firestore, async (transaction) => {
+          // Delete from source collection
+          const sourceDoc = doc(this.firestore, previousContainer.id, item.id!);
+          transaction.delete(sourceDoc);
+
+          // Add to target collection with position
+          const targetDoc = doc(this.firestore, container.id, item.id!);
+          transaction.set(targetDoc, {
+            ...item,
+            position: currentIndex
+          });
+
+          // Update positions in source container
+          newSourceData.forEach((task, index) => {
+            const docRef = doc(this.firestore, previousContainer.id, task.id!);
+            transaction.update(docRef, { position: index });
+          });
+
+          // Update positions in target container
+          newTargetData.forEach((task, index) => {
+            const docRef = doc(this.firestore, container.id, task.id!);
+            transaction.update(docRef, { position: index });
+          });
+        });
+      } catch (e) {
+        console.error('Cross-list transaction failed: ', e);
+        // Revert optimistic updates on error
+        this.subscribeToCollection(previousContainer.id as 'todo' | 'inProgress' | 'done');
+        this.subscribeToCollection(container.id as 'todo' | 'inProgress' | 'done');
+      }
     }
   }
 
@@ -115,7 +171,8 @@ export class AppComponent {
       const docRef = doc(collectionRef);
       await setDoc(docRef, {
         ...result.task,
-        id: docRef.id
+        id: docRef.id,
+        position: this.todo().length
       });
     } catch (e) {
       console.error('Error creating task: ', e);
