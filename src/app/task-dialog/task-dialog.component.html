@@ -21,10 +21,19 @@
 
 <mat-dialog-actions align="end">
   <button mat-button (click)="cancel()">Cancel</button>
+  @if (data().enableDelete) {
+    <button 
+      mat-fab 
+      color="warn" 
+      aria-label="Delete task"
+      (click)="delete()">
+      <mat-icon>delete</mat-icon>
+    </button>
+  }
   <button 
     mat-flat-button 
     color="primary"
-    [mat-dialog-close]="{ task: data().task }">
+    (click)="save()">
     Save
   </button>
 </mat-dialog-actions>

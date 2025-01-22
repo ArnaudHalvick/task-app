@@ -3,6 +3,7 @@ import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/materia
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatIconModule } from '@angular/material/icon';
 import { FormsModule } from '@angular/forms';
 import { TaskDialogData, TaskDialogResult } from './task-dialog.types';
 
@@ -14,6 +15,7 @@ import { TaskDialogData, TaskDialogResult } from './task-dialog.types';
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
+    MatIconModule,
     FormsModule
   ],
   templateUrl: './task-dialog.component.html',
@@ -33,6 +35,14 @@ export class TaskDialogComponent {
       ...current,
       task: { ...this.backupTask }
     }));
-    this.dialogRef.close(this.data());
+    this.dialogRef.close();
+  }
+
+  delete(): void {
+    this.dialogRef.close({ task: this.data().task, delete: true });
+  }
+
+  save(): void {
+    this.dialogRef.close({ task: this.data().task });
   }
 }

@@ -80,7 +80,30 @@ export class AppComponent {
   }
 
   editTask(list: 'todo' | 'inProgress' | 'done', task: Task): void {
-    console.log('Editing task:', task, 'in list:', list);
+    const dialogRef = this.dialog.open(TaskDialogComponent, {
+      width: '450px',
+      data: {
+        task: { ...task },
+        enableDelete: true
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((result?: TaskDialogResult) => {
+      if (!result) return;
+
+      const signal = this[list];
+      const currentTasks = signal();
+      
+      if (result.delete) {
+        // Remove the task
+        signal.set(currentTasks.filter(t => t.id !== task.id));
+      } else {
+        // Update the task
+        signal.set(currentTasks.map(t => 
+          t.id === task.id ? { ...result.task, id: task.id } : t
+        ));
+      }
+    });
   }
 
   newTask(): void {
