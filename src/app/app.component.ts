@@ -9,12 +9,7 @@ import { MatIconModule } from '@angular/material/icon';
     MatToolbarModule,
     MatIconModule
   ],
-  template: `
-    <mat-toolbar color="primary">
-      <mat-icon>local_fire_department</mat-icon>
-      <span>Kanban Fire</span>
-    </mat-toolbar>
-  `
+  templateUrl: './app.component.html'
 })
 export class AppComponent {
   title = 'kanban-fire';
