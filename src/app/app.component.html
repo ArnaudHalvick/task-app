@@ -2,3 +2,10 @@
   <mat-icon>local_fire_department</mat-icon>
   <span>Kanban Fire</span>
 </mat-toolbar>
+
+@for (task of todo(); track task.title) {
+  <app-task 
+    [task]="task"
+    (edit)="handleEdit($event)">
+  </app-task>
+}
