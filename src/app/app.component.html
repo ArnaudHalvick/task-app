@@ -3,9 +3,78 @@
   <span>NG Task App</span>
 </mat-toolbar>
 
-@for (task of todo(); track task.title) {
-  <app-task 
-    [task]="task"
-    (edit)="handleEdit($event)">
-  </app-task>
-}
+<div class="content-wrapper">
+  <div class="container-wrapper">
+    <div class="container">
+      <h2>Backlog</h2>
+
+      <mat-card
+        cdkDropList
+        id="todo"
+        #todoList="cdkDropList"
+        [cdkDropListData]="todo()"
+        [cdkDropListConnectedTo]="[doneList, inProgressList]"
+        (cdkDropListDropped)="drop($event)"
+        class="list">
+        @if (todo().length === 0) {
+          <p class="empty-label">Empty list</p>
+        }
+        @for (task of todo(); track task.id) {
+          <app-task 
+            cdkDrag 
+            [task]="task"
+            (edit)="editTask('todo', $event)">
+          </app-task>
+        }
+      </mat-card>
+    </div>
+
+    <div class="container">
+      <h2>In progress</h2>
+
+      <mat-card
+        cdkDropList
+        id="inProgress"
+        #inProgressList="cdkDropList"
+        [cdkDropListData]="inProgress()"
+        [cdkDropListConnectedTo]="[todoList, doneList]"
+        (cdkDropListDropped)="drop($event)"
+        class="list">
+        @if (inProgress().length === 0) {
+          <p class="empty-label">Empty list</p>
+        }
+        @for (task of inProgress(); track task.id) {
+          <app-task 
+            cdkDrag 
+            [task]="task"
+            (edit)="editTask('inProgress', $event)">
+          </app-task>
+        }
+      </mat-card>
+    </div>
+
+    <div class="container">
+      <h2>Done</h2>
+
+      <mat-card
+        cdkDropList
+        id="done"
+        #doneList="cdkDropList"
+        [cdkDropListData]="done()"
+        [cdkDropListConnectedTo]="[todoList, inProgressList]"
+        (cdkDropListDropped)="drop($event)"
+        class="list">
+        @if (done().length === 0) {
+          <p class="empty-label">Empty list</p>
+        }
+        @for (task of done(); track task.id) {
+          <app-task 
+            cdkDrag 
+            [task]="task"
+            (edit)="editTask('done', $event)">
+          </app-task>
+        }
+      </mat-card>
+    </div>
+  </div>
+</div>
