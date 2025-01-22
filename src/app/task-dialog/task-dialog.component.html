@@ -1,0 +1,30 @@
+<h2 mat-dialog-title>{{ data().task.title ? 'Edit Task' : 'New Task' }}</h2>
+
+<mat-dialog-content>
+  <mat-form-field appearance="fill">
+    <mat-label>Title</mat-label>
+    <input 
+      matInput 
+      cdkFocusInitial 
+      [(ngModel)]="data().task.title" 
+      placeholder="Task title">
+  </mat-form-field>
+
+  <mat-form-field appearance="fill">
+    <mat-label>Description</mat-label>
+    <textarea 
+      matInput 
+      [(ngModel)]="data().task.description"
+      placeholder="Task description"></textarea>
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Cancel</button>
+  <button 
+    mat-flat-button 
+    color="primary"
+    [mat-dialog-close]="{ task: data().task }">
+    Save
+  </button>
+</mat-dialog-actions>

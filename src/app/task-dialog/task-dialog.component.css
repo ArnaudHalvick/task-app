@@ -1,0 +1,38 @@
+.mat-mdc-dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  max-height: none;
+}
+
+.mat-mdc-form-field {
+  width: 100%;
+}
+
+.mat-mdc-dialog-actions {
+  justify-content: flex-end;
+  padding: 16px;
+  margin: 0;
+}
+
+textarea.mat-mdc-input-element {
+  min-height: 100px;
+  resize: vertical;
+}
+
+/* Ensure proper spacing between title and content */
+.mat-mdc-dialog-title {
+  margin: 0;
+  padding: 20px 20px 0;
+}
+
+/* Add some hover effects to buttons */
+.mat-mdc-dialog-actions button:hover {
+  opacity: 0.9;
+}
+
+/* Ensure proper spacing between buttons */
+.mat-mdc-dialog-actions button + button {
+  margin-left: 8px;
+}
